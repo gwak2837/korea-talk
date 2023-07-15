@@ -1,5 +1,5 @@
 import React, { FormEvent, Fragment, KeyboardEvent, useEffect, useRef, useState } from 'react'
-import { useRecoilValue } from 'recoil'
+import { atom, useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import styled from 'styled-components'
 import { v4 as uuid } from 'uuid'
 
@@ -7,7 +7,7 @@ import Socket from '../../socket/socket'
 import { Img, selectedConversationAtom } from '../ConversationList/ConversationList'
 import PaperAirplane from '../PaperAirplane'
 
-interface Email {
+export interface Email {
   id: string
   conversationId: string
   text: string
@@ -24,6 +24,16 @@ enum EmailStatus {
   error,
   success,
 }
+
+export const preEmailAtom = atom<string>({
+  key: 'preEmailAtom',
+  default: null,
+})
+
+export const emailsAtom = atom<Email[]>({
+  key: 'emailsAtom',
+  default: null,
+})
 
 async function getEmails(conversationId: string) {
   const response = await fetch(
@@ -51,11 +61,12 @@ async function createEmail(conversationId: string, newEmail: string) {
 }
 
 export default function EmailArea(props) {
-  // Selected
+  // Recoil
   const selectedConversation = useRecoilValue(selectedConversationAtom)
+  const preEmail = useRef('')
 
   // Fetch
-  const [emails, setEmails] = useState<Email[]>()
+  const [emails, setEmails] = useRecoilState(emailsAtom)
 
   useEffect(() => {
     if (!selectedConversation) return
@@ -77,7 +88,6 @@ export default function EmailArea(props) {
   // Create email
   const formRef = useRef(null)
 
-  const preEmail = useRef('')
   const [emailInput, setEmailInput] = useState('')
 
   async function submit(e: FormEvent<HTMLFormElement>) {

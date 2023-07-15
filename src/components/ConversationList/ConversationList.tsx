@@ -1,8 +1,11 @@
+import moment from 'moment'
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { atom, useRecoilState } from 'recoil'
 import styled from 'styled-components'
 import { v4 as uuid } from 'uuid'
+
+import Socket from '../../socket/socket'
+import { Email } from '../EmailArea/EmailArea'
 
 interface Conversation {
   id: string
@@ -18,22 +21,48 @@ export const selectedConversationAtom = atom<Conversation>({
   default: null,
 })
 
+export const conversationsAtom = atom<Conversation[]>({
+  key: 'conversationsAtom',
+  default: null,
+})
+
 async function getConversations() {
   const response = await fetch('https://front-assignment.exp.channel.io/conversations')
   return (await response.json()) as Conversation[]
 }
 
 export default function ConversationList(props) {
-  // Selected
+  // Recoil
   const [selectedConversation, setSelectedConversation] = useRecoilState(selectedConversationAtom)
 
   // Fetch
-  const [conversations, setConversations] = useState<Conversation[]>()
+  const [conversations, setConversations] = useRecoilState(conversationsAtom)
 
   useEffect(() => {
     getConversations().then((conversations) =>
       setConversations(conversations.sort((a, b) => b.updatedAt - a.updatedAt)),
     )
+  }, [])
+
+  // Socket
+  useEffect(() => {
+    function receiveEmail(newEmail: Email) {
+      setConversations((pre) =>
+        pre
+          .map((conversation) =>
+            conversation.id === newEmail.conversationId
+              ? { ...conversation, updatedAt: newEmail.createdAt }
+              : conversation,
+          )
+          .sort((a, b) => b.updatedAt - a.updatedAt),
+      )
+    }
+
+    Socket.on(receiveEmail)
+
+    return () => {
+      Socket.off(receiveEmail)
+    }
   }, [])
 
   return (
