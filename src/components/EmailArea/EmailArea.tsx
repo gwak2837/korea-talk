@@ -222,7 +222,7 @@ export default function EmailArea(props) {
                   </Grid11>
                 )
               )}
-              {email.fromUser && <div>{selectedConversation.userName}</div>}
+              {email.fromUser && <FontSize>{selectedConversation.userName}</FontSize>}
               <Gray
                 fromUser={email.fromUser}
                 ref={i === emails[selectedConversation.id].length - 1 ? lastEmailRef : undefined}
@@ -249,7 +249,7 @@ export default function EmailArea(props) {
           value={emailInput}
         />
         <button disabled={emailInput.length === 0} data-testid="submit">
-          제출
+          전송
         </button>
       </Absolute>
     </GridGap>
@@ -290,6 +290,11 @@ const Triangle = styled.div`
   left: -8px;
 `
 
+const FontSize = styled.div`
+  font-size: 0.9em;
+  padding: 0.3rem;
+`
+
 const Width = styled.div<{ fromUser: boolean }>`
   width: fit-content;
   ${(p) => !p.fromUser && 'display: flex; gap: 0.5rem; align-items: center;'}
@@ -311,7 +316,7 @@ const Absolute = styled.form`
   right: 0;
   bottom: 0;
   width: 558px;
-  height: 65px;
+  height: 77px;
 
   display: grid;
   grid-template-columns: 1fr auto;
