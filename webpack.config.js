@@ -10,10 +10,7 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
-    modules: [
-      path.join(__dirname, 'src'),
-      'node_modules',
-    ],
+    modules: [path.join(__dirname, 'src'), 'node_modules'],
   },
   module: {
     rules: [
@@ -23,11 +20,7 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: [
-              '@babel/preset-env',
-              '@babel/preset-react',
-              '@babel/preset-typescript',
-            ],
+            presets: ['@babel/preset-env', '@babel/preset-react', '@babel/preset-typescript'],
             plugins: [
               ['@babel/plugin-proposal-class-properties', { loose: true }],
               ['@babel/plugin-proposal-private-methods', { loose: true }],
@@ -45,8 +38,10 @@ module.exports = {
     }),
   ],
   optimization: {
-    minimizer: [new TerserJsPlugin({
-      extractComments: false,
-    })],
+    minimizer: [
+      new TerserJsPlugin({
+        extractComments: false,
+      }),
+    ],
   },
-};
+}

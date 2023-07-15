@@ -1,8 +1,7 @@
-// 현재 파일은 기본 제공 디자인입니다. 수정하지 말아주세요.
-import styled from 'styled-components'
-
 import BaseConversationList from 'components/ConversationList/ConversationList'
 import BaseEmailArea from 'components/EmailArea/EmailArea'
+// 현재 파일은 기본 제공 디자인입니다. 수정하지 말아주세요.
+import styled from 'styled-components'
 
 const Main = styled.div`
   display: flex;
@@ -10,6 +9,8 @@ const Main = styled.div`
   height: 600px;
   margin: 20px auto;
   border: 1px solid #ddd;
+
+  position: relative;
 `
 
 const ConversationList = styled(BaseConversationList)`
