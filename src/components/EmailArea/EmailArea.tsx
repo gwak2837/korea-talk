@@ -1,10 +1,13 @@
 import React, { FormEvent, Fragment, KeyboardEvent, useEffect, useRef, useState } from 'react'
-import { atom, useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import styled from 'styled-components'
-import { v4 as uuid } from 'uuid'
 
 import Socket from '../../socket/socket'
-import { Img, selectedConversationAtom } from '../ConversationList/ConversationList'
+import {
+  Img,
+  newConversationIdsAtom,
+  selectedConversationAtom,
+} from '../ConversationList/ConversationList'
 import PaperAirplane from '../PaperAirplane'
 
 export interface Email {
@@ -25,12 +28,7 @@ enum EmailStatus {
   success,
 }
 
-export const preEmailAtom = atom<string>({
-  key: 'preEmailAtom',
-  default: null,
-})
-
-export const emailsAtom = atom<Email[]>({
+export const emailsAtom = atom<Record<string, Email[]>>({
   key: 'emailsAtom',
   default: null,
 })
@@ -63,18 +61,26 @@ async function createEmail(conversationId: string, newEmail: string) {
 export default function EmailArea(props) {
   // Recoil
   const selectedConversation = useRecoilValue(selectedConversationAtom)
-  const preEmail = useRef('')
+
+  const [newConversationIds, setNewConversationIds] = useRecoilState(newConversationIdsAtom)
 
   // Fetch
   const [emails, setEmails] = useRecoilState(emailsAtom)
 
   useEffect(() => {
     if (!selectedConversation) return
+    if (!newConversationIds.has(selectedConversation.id)) return
+
+    newConversationIds.delete(selectedConversation.id)
+    setNewConversationIds(newConversationIds)
 
     getEmails(selectedConversation.id).then((emails) =>
-      setEmails(emails.sort((a, b) => a.createdAt - b.createdAt)),
+      setEmails((prev) => ({
+        ...prev,
+        [selectedConversation.id]: emails.sort((a, b) => a.createdAt - b.createdAt),
+      })),
     )
-  }, [selectedConversation?.id])
+  }, [selectedConversation])
 
   // Scroll to last email
   const lastEmailRef = useRef(null)
@@ -87,6 +93,7 @@ export default function EmailArea(props) {
 
   // Create email
   const formRef = useRef(null)
+  const preEmail = useRef('')
 
   const [emailInput, setEmailInput] = useState('')
 
@@ -98,20 +105,32 @@ export default function EmailArea(props) {
 
     const tempEmailId = String(Date.now())
 
-    setEmails((prev) => [
+    setEmails((prev) => ({
       ...prev,
-      { id: tempEmailId, text: emailInput, status: EmailStatus.loading } as TempEmail,
-    ])
+      [selectedConversation.id]: [
+        ...prev[selectedConversation.id],
+        { id: tempEmailId, text: emailInput, status: EmailStatus.loading } as TempEmail,
+      ],
+    }))
 
     try {
       const newEmailResponse = await createEmail(selectedConversation.id, emailInput)
-      setEmails((prev) => [...prev.filter((email) => email.id !== tempEmailId), newEmailResponse])
+      setEmails((prev) => ({
+        ...prev,
+        [selectedConversation.id]: [
+          ...prev[selectedConversation.id].filter((email) => email.id !== tempEmailId),
+          newEmailResponse,
+        ],
+      }))
     } catch (error) {
       alert(error.message)
-      setEmails((prev) => [
-        ...prev.filter((email) => email.id !== tempEmailId),
-        { id: tempEmailId, text: emailInput, status: EmailStatus.error } as TempEmail,
-      ])
+      setEmails((prev) => ({
+        ...prev,
+        [selectedConversation.id]: [
+          ...prev[selectedConversation.id].filter((email) => email.id !== tempEmailId),
+          { id: tempEmailId, text: emailInput, status: EmailStatus.error } as TempEmail,
+        ],
+      }))
     }
   }
 
@@ -129,7 +148,12 @@ export default function EmailArea(props) {
       if (preEmail.current === email.text) return
 
       preEmail.current = ''
-      setEmails((prev) => [...prev, email].sort((a, b) => a.createdAt - b.createdAt))
+      setEmails((prev) => ({
+        ...prev,
+        [selectedConversation.id]: [...prev[selectedConversation.id], email].sort(
+          (a, b) => a.createdAt - b.createdAt,
+        ),
+      }))
     }
 
     Socket.on(receiveEmail)
@@ -141,33 +165,50 @@ export default function EmailArea(props) {
 
   // Email with error
   function removeEmail(emailId: string) {
-    setEmails((prev) => [...prev.filter((email: TempEmail) => email.id !== emailId)])
+    setEmails((prev) => ({
+      ...prev,
+      [selectedConversation.id]: [
+        ...prev[selectedConversation.id].filter((email: TempEmail) => email.id !== emailId),
+      ],
+    }))
   }
 
   async function resend(tempEmail: TempEmail) {
     const tempEmailId = String(Date.now())
 
-    setEmails((prev) => [
-      ...prev.filter((email) => email.id !== tempEmail.id),
-      { id: tempEmailId, text: emailInput, status: EmailStatus.loading } as TempEmail,
-    ])
+    setEmails((prev) => ({
+      ...prev,
+      [selectedConversation.id]: [
+        ...prev[selectedConversation.id].filter((email) => email.id !== tempEmail.id),
+        { id: tempEmailId, text: emailInput, status: EmailStatus.loading } as TempEmail,
+      ],
+    }))
 
     try {
       const newEmailResponse = await createEmail(selectedConversation.id, emailInput)
-      setEmails((prev) => [...prev.filter((email) => email.id !== tempEmailId), newEmailResponse])
+      setEmails((prev) => ({
+        ...prev,
+        [selectedConversation.id]: [
+          ...prev[selectedConversation.id].filter((email) => email.id !== tempEmailId),
+          newEmailResponse,
+        ],
+      }))
     } catch (error) {
       alert(error.message)
-      setEmails((prev) => [
-        ...prev.filter((email) => email.id !== tempEmailId),
-        { id: tempEmailId, text: emailInput, status: EmailStatus.error } as TempEmail,
-      ])
+      setEmails((prev) => ({
+        ...prev,
+        [selectedConversation.id]: [
+          ...prev[selectedConversation.id].filter((email) => email.id !== tempEmailId),
+          { id: tempEmailId, text: emailInput, status: EmailStatus.error } as TempEmail,
+        ],
+      }))
     }
   }
 
   return selectedConversation ? (
     <GridGap {...props}>
-      {emails ? (
-        emails.map((email, i) => (
+      {emails[selectedConversation.id] ? (
+        emails[selectedConversation.id].map((email, i) => (
           <Grid key={email.id} data-testid="email" fromUser={email.fromUser}>
             {email.fromUser && <Img src={selectedConversation.userAvatarUrl} />}
             <Width fromUser={email.fromUser}>
@@ -184,7 +225,7 @@ export default function EmailArea(props) {
               {email.fromUser && <div>{selectedConversation.userName}</div>}
               <Gray
                 fromUser={email.fromUser}
-                ref={i === emails.length - 1 ? lastEmailRef : undefined}
+                ref={i === emails[selectedConversation.id].length - 1 ? lastEmailRef : undefined}
               >
                 {email.fromUser && <Triangle />}
                 {applyLineBreak(email.text)}

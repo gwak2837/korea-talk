@@ -1,11 +1,11 @@
 import moment from 'moment'
 import React, { useEffect, useState } from 'react'
-import { atom, useRecoilState } from 'recoil'
+import { atom, useRecoilState, useSetRecoilState } from 'recoil'
 import styled from 'styled-components'
 import { v4 as uuid } from 'uuid'
 
 import Socket from '../../socket/socket'
-import { Email } from '../EmailArea/EmailArea'
+import { Email, emailsAtom } from '../EmailArea/EmailArea'
 
 interface Conversation {
   id: string
@@ -26,6 +26,11 @@ export const conversationsAtom = atom<Conversation[]>({
   default: null,
 })
 
+export const newConversationIdsAtom = atom<Set<string>>({
+  key: 'newConversationIdsAtom',
+  default: null,
+})
+
 async function getConversations() {
   const response = await fetch('https://front-assignment.exp.channel.io/conversations')
   return (await response.json()) as Conversation[]
@@ -34,14 +39,21 @@ async function getConversations() {
 export default function ConversationList(props) {
   // Recoil
   const [selectedConversation, setSelectedConversation] = useRecoilState(selectedConversationAtom)
+  const setNewConversationIds = useSetRecoilState(newConversationIdsAtom)
+  const setEmails = useSetRecoilState(emailsAtom)
 
   // Fetch
   const [conversations, setConversations] = useRecoilState(conversationsAtom)
 
   useEffect(() => {
-    getConversations().then((conversations) =>
-      setConversations(conversations.sort((a, b) => b.updatedAt - a.updatedAt)),
-    )
+    getConversations().then((newConversations) => {
+      setConversations(newConversations.sort((a, b) => b.updatedAt - a.updatedAt))
+      setNewConversationIds(new Set(newConversations.map((conversation) => conversation.id)))
+
+      const a = {}
+      newConversations.forEach((newConversation) => (a[newConversation.id] = []))
+      setEmails(a)
+    })
   }, [])
 
   // Socket
@@ -56,6 +68,8 @@ export default function ConversationList(props) {
           )
           .sort((a, b) => b.updatedAt - a.updatedAt),
       )
+
+      setNewConversationIds((pre) => pre.add(newEmail.conversationId))
     }
 
     Socket.on(receiveEmail)
@@ -80,7 +94,7 @@ export default function ConversationList(props) {
               <Ellipsis>{conversation.title}</Ellipsis>
               <FlexBetween>
                 <div>{conversation.userName}</div>
-                <div>{conversation.updatedAt}</div>
+                <div>{formatDate(conversation.updatedAt)}</div>
               </FlexBetween>
             </MinWidth>
           </Flex>
@@ -141,3 +155,14 @@ const Ellipsis = styled.div`
   text-overflow: ellipsis;
   white-space: nowrap;
 `
+
+function formatDate(date: number) {
+  const d = new Date(date)
+  const now = new Date()
+
+  const hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padEnd(2, '0')
+
+  return d.toLocaleDateString() === now.toLocaleDateString()
+    ? hhmm
+    : `${d.toLocaleDateString()} ${hhmm}`
+}
