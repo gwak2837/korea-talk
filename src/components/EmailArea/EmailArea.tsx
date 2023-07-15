@@ -65,6 +65,15 @@ export default function EmailArea(props) {
     )
   }, [selectedConversation?.id])
 
+  // Scroll to last email
+  const lastEmailRef = useRef(null)
+
+  useEffect(() => {
+    if (!lastEmailRef.current) return
+
+    lastEmailRef.current.scrollIntoView()
+  }, [emails])
+
   // Create email
   const formRef = useRef(null)
 
@@ -105,14 +114,20 @@ export default function EmailArea(props) {
 
   // Socket
   useEffect(() => {
-    Socket.on((email: Email) => {
-      if (selectedConversation.id !== email.conversationId) return
+    function receiveEmail(email: Email) {
+      if (selectedConversation?.id !== email.conversationId) return
       if (preEmail.current === email.text) return
 
       preEmail.current = ''
       setEmails((prev) => [...prev, email].sort((a, b) => a.createdAt - b.createdAt))
-    })
-  }, [])
+    }
+
+    Socket.on(receiveEmail)
+
+    return () => {
+      Socket.off(receiveEmail)
+    }
+  }, [selectedConversation?.id])
 
   // Email with error
   function removeEmail(emailId: string) {
@@ -142,7 +157,7 @@ export default function EmailArea(props) {
   return selectedConversation ? (
     <GridGap {...props}>
       {emails ? (
-        emails.map((email) => (
+        emails.map((email, i) => (
           <Grid key={email.id} data-testid="email" fromUser={email.fromUser}>
             {email.fromUser && <Img src={selectedConversation.userAvatarUrl} />}
             <Width fromUser={email.fromUser}>
@@ -157,7 +172,10 @@ export default function EmailArea(props) {
                 )
               )}
               {email.fromUser && <div>{selectedConversation.userName}</div>}
-              <Gray fromUser={email.fromUser}>
+              <Gray
+                fromUser={email.fromUser}
+                ref={i === emails.length - 1 ? lastEmailRef : undefined}
+              >
                 {email.fromUser && <Triangle />}
                 {applyLineBreak(email.text)}
               </Gray>
