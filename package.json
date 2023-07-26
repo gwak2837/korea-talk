@@ -1,7 +1,7 @@
 {
-  "name": "channel-web-assignment",
+  "name": "korea-talk",
   "version": "1.0.0",
-  "description": "채널코퍼레이션의 웹(Frontend) 과제 전형 프로젝트입니다.",
+  "description": "",
   "main": "src/index.tsx",
   "scripts": {
     "start": "webpack serve --inline --progress --config webpack.config.js --mode development",
