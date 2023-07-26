@@ -2,7 +2,7 @@ import { io } from 'socket.io-client'
 
 // 현재 파일은 수정하지 않고 사용만 해주세요.
 
-const serverUrl = 'ws://front-assignment.exp.channel.io'
+const serverUrl = 'wss://front-assignment.exp.channel.io'
 
 class Socket {
   handlers = new Set<(email) => void>()
@@ -10,8 +10,8 @@ class Socket {
   constructor() {
     const socket = io(`${serverUrl}/conversations`)
 
-    socket.on('email', email => {
-      this.handlers.forEach(handler => handler(email))
+    socket.on('email', (email) => {
+      this.handlers.forEach((handler) => handler(email))
     })
   }
 

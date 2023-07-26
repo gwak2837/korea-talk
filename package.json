@@ -7,7 +7,7 @@
     "start": "webpack serve --inline --progress --config webpack.config.js --mode development",
     "build": "webpack --mode production"
   },
-  "author": "Channel Corp.",
+  "author": "Taeuk Gwak",
   "license": "UNLICENSED",
   "dependencies": {
     "axios": "^0.21.1",
